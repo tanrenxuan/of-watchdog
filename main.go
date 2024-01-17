@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"unsafe"
 
 	units "github.com/docker/go-units"
 
@@ -378,7 +379,9 @@ func makeHTTPRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 	functionInvoker.Start()
 
 	return func(w http.ResponseWriter, r *http.Request) {
-
+		segBeginLog := fmt.Sprintf("start_ofwatchdog_flag_data is %s", r.Header.Get("uuid"))
+		beginData := []byte(segBeginLog)
+		_, _, _ = syscall.Syscall(syscall.SYS_WRITE, uintptr(syscall.Stdout), uintptr(unsafe.Pointer(&beginData[0])), uintptr(len(beginData)))
 		req := executor.FunctionRequest{
 			Process:      commandName,
 			ProcessArgs:  arguments,
@@ -393,6 +396,9 @@ func makeHTTPRequestHandler(watchdogConfig config.WatchdogConfig, prefixLogs boo
 			w.WriteHeader(500)
 			w.Write([]byte(err.Error()))
 		}
+		segEndLog := fmt.Sprintf("end_ofwatchdog_flag_data is %s", r.Header.Get("uuid"))
+		endData := []byte(segEndLog)
+		_, _, _ = syscall.Syscall(syscall.SYS_WRITE, uintptr(syscall.Stdout), uintptr(unsafe.Pointer(&endData[0])), uintptr(len(endData)))
 	}
 }
 
